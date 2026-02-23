@@ -9,6 +9,7 @@ const Footer: React.FC = () => {
           <div>
             <div className="flex flex-col gap-2 mb-6">
               <div className="flex items-center gap-3">
+                <img alt="Saathi Drive Logo" className="h-16 w-auto" src="/assets/sathidrivelogo.png" />
                 <span className="text-xl font-bold text-white uppercase tracking-tight">Saathi Drive</span>
               </div>
               <span className="text-[10px] font-semibold tracking-[0.2em] text-accent uppercase ml-1">Save time, Safe Ride</span>

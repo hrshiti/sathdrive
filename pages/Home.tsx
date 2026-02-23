@@ -119,9 +119,12 @@ const Home: React.FC = () => {
                   <input className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 text-sm" placeholder="Now" type="text"/>
                 </div>
               </div>
-              <button className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
+              <a
+                href="https://admin.saathidrive.com/"
+                className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+              >
                 BOOK YOUR RIDE <span className="material-symbols-outlined">arrow_forward</span>
-              </button>
+              </a>
             </div>
           </div>
         </div>
