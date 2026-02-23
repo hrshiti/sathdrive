@@ -120,7 +120,7 @@ const Home: React.FC = () => {
                 </div>
               </div>
               <a
-                href="https://admin.saathidrive.com/"
+                href="https://admin.saathidrive.com/login/user-login/"
                 className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
               >
                 BOOK YOUR RIDE <span className="material-symbols-outlined">arrow_forward</span>
