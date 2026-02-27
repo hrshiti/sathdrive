@@ -2,6 +2,34 @@
 import React from 'react';
 
 const Footer: React.FC = () => {
+  const handleShareClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+
+    const shareText =
+      'Book your premium rides with Saathi Drive – Bangalore’s premier commute partner.';
+    const shareUrl = window.location.origin + window.location.pathname + '#/';
+
+    const nav = window.navigator as any;
+
+    if (nav && typeof nav.share === 'function') {
+      nav
+        .share({
+          title: 'Saathi Drive',
+          text: shareText,
+          url: shareUrl,
+        })
+        .catch(() => {
+          // Swallow errors from cancelled shares.
+        });
+      return;
+    }
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+      `${shareText} ${shareUrl}`,
+    )}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <footer className="bg-bg-dark py-20 px-6 lg:px-20 text-white border-t border-white/5">
       <div className="container mx-auto">
@@ -18,10 +46,17 @@ const Footer: React.FC = () => {
               Redefining urban mobility in Bangalore through excellence, safety, and a touch of Indian tradition.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:text-accent transition-colors">
+              <a
+                href="#"
+                onClick={handleShareClick}
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:text-accent transition-colors"
+              >
                 <span className="material-symbols-outlined">share</span>
               </a>
-              <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:text-accent transition-colors">
+              <a
+                href="mailto:support@saathidrive.com?subject=Saathi%20Drive%20Enquiry"
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white hover:text-accent transition-colors"
+              >
                 <span className="material-symbols-outlined">alternate_email</span>
               </a>
             </div>
