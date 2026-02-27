@@ -26,6 +26,11 @@ const PlacesAutocomplete: React.FC<PlacesAutocompleteProps> = ({
   isReady,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const onChangeTextRef = useRef(onChangeText);
+  const onPlaceSelectedRef = useRef(onPlaceSelected);
+
+  onChangeTextRef.current = onChangeText;
+  onPlaceSelectedRef.current = onPlaceSelected;
 
   useEffect(() => {
     const google = (window as any).google;
@@ -51,10 +56,11 @@ const PlacesAutocomplete: React.FC<PlacesAutocompleteProps> = ({
       const lat = location ? location.lat() : null;
       const lng = location ? location.lng() : null;
 
-      onChangeText(description);
+      onChangeTextRef.current(description);
 
-      if (onPlaceSelected && lat != null && lng != null) {
-        onPlaceSelected({
+      const onPlace = onPlaceSelectedRef.current;
+      if (onPlace && lat != null && lng != null) {
+        onPlace({
           description,
           lat,
           lng,
@@ -67,7 +73,7 @@ const PlacesAutocomplete: React.FC<PlacesAutocompleteProps> = ({
         google.maps.event.removeListener(listener);
       }
     };
-  }, [isReady, onChangeText, onPlaceSelected]);
+  }, [isReady]);
 
   return (
     <div className="relative">

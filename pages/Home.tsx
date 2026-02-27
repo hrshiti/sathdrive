@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import PlacesAutocomplete from '../components/PlacesAutocomplete';
 import { useGoogleMapsScript } from '../hooks/useGoogleMapsScript';
 import { computeDistanceKm } from '../utils/geo';
@@ -95,6 +95,27 @@ const Home: React.FC = () => {
       [field]: e.target.value,
     }));
   };
+
+  const onPickupChangeText = useCallback((value: string) => {
+    setFormData((prev) => ({ ...prev, pickup_location: value }));
+  }, []);
+  const onPickupPlaceSelected = useCallback((place: { lat: number; lng: number }) => {
+    setCoords((prev) => ({
+      ...prev,
+      pickup_lat: place.lat,
+      pickup_lng: place.lng,
+    }));
+  }, []);
+  const onDropChangeText = useCallback((value: string) => {
+    setFormData((prev) => ({ ...prev, drop_location: value }));
+  }, []);
+  const onDropPlaceSelected = useCallback((place: { lat: number; lng: number }) => {
+    setCoords((prev) => ({
+      ...prev,
+      drop_lat: place.lat,
+      drop_lng: place.lng,
+    }));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -282,16 +303,8 @@ const Home: React.FC = () => {
             <form className="space-y-4" onSubmit={handleSubmit}>
               <PlacesAutocomplete
                 value={formData.pickup_location}
-                onChangeText={(value) =>
-                  setFormData((prev) => ({ ...prev, pickup_location: value }))
-                }
-                onPlaceSelected={(place) =>
-                  setCoords((prev) => ({
-                    ...prev,
-                    pickup_lat: place.lat,
-                    pickup_lng: place.lng,
-                  }))
-                }
+                onChangeText={onPickupChangeText}
+                onPlaceSelected={onPickupPlaceSelected}
                 placeholder="Pick-up location"
                 disabled={!isMapsLoaded}
                 isReady={isMapsLoaded}
@@ -304,16 +317,8 @@ const Home: React.FC = () => {
               />
               <PlacesAutocomplete
                 value={formData.drop_location}
-                onChangeText={(value) =>
-                  setFormData((prev) => ({ ...prev, drop_location: value }))
-                }
-                onPlaceSelected={(place) =>
-                  setCoords((prev) => ({
-                    ...prev,
-                    drop_lat: place.lat,
-                    drop_lng: place.lng,
-                  }))
-                }
+                onChangeText={onDropChangeText}
+                onPlaceSelected={onDropPlaceSelected}
                 placeholder="Drop-off destination"
                 disabled={!isMapsLoaded}
                 isReady={isMapsLoaded}
