@@ -95,7 +95,7 @@ const Support: React.FC = () => {
       {/* Map */}
       <section className="w-full h-[400px] relative">
         <iframe
-          src="https://www.google.com/maps?q=102+Brigade+Road+MG+Road+Area+Bangalore+Karnataka+560001&output=embed"
+          src="https://www.google.com/maps?q=17+12th+Cross+opposite+to+JP+Park+Brindavan+Nagar+Mathikere+Bengaluru+Karnataka+560054&output=embed"
           width="100%"
           height="100%"
           style={{ border: 0 }}
@@ -103,7 +103,7 @@ const Support: React.FC = () => {
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
           className="w-full h-full"
-          title="Saathi Drive HQ Location - 102, Brigade Road, MG Road Area, Bangalore"
+          title="Saathi Drive HQ Location - 17, 12th Cross, opposite to JP Park, Brindavan Nagar, Mathikere, Bengaluru"
         ></iframe>
         <div className="absolute top-4 left-4 bg-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 border border-accent z-10">
           <div className="w-3 h-3 bg-accent rounded-full animate-pulse"></div>

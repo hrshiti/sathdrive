@@ -52,7 +52,7 @@ const Footer: React.FC = () => {
             <div className="space-y-4 text-white/60 text-sm italic">
               <p className="flex gap-2">
                 <span className="material-symbols-outlined text-accent text-sm">location_on</span>
-                102, Brigade Road, MG Road Area,<br/>Bangalore, Karnataka 560001
+                17, 12th Cross, opposite to JP Park, Brindavan Nagar, Mathikere,<br/>Bengaluru, Karnataka 560054
               </p>
               <p className="flex gap-2">
                 <span className="material-symbols-outlined text-accent text-sm">call</span>

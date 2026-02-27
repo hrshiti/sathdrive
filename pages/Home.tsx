@@ -1,5 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import PlacesAutocomplete from '../components/PlacesAutocomplete';
+import { useGoogleMapsScript } from '../hooks/useGoogleMapsScript';
+import { computeDistanceKm } from '../utils/geo';
+import { submitWebBookingEnquiry } from '../services/webbookingApi';
 import type { ServiceCard } from '../types.ts';
 
 const SERVICES: ServiceCard[] = [
@@ -48,6 +52,131 @@ const SERVICES: ServiceCard[] = [
 ];
 
 const Home: React.FC = () => {
+  const getDefaultDate = () => new Date().toISOString().slice(0, 10);
+  const getDefaultTime = () => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const [formData, setFormData] = useState({
+    pickup_location: '',
+    drop_location: '',
+    pickup_date: getDefaultDate(),
+    pickup_time: getDefaultTime(),
+    name: '',
+    mobile_number: '',
+  });
+
+  const [coords, setCoords] = useState<{
+    pickup_lat: number | null;
+    pickup_lng: number | null;
+    drop_lat: number | null;
+    drop_lng: number | null;
+  }>({
+    pickup_lat: null,
+    pickup_lng: null,
+    drop_lat: null,
+    drop_lng: null,
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const { isLoaded: isMapsLoaded, error: mapsError } = useGoogleMapsScript();
+
+  const handleChange = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: e.target.value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (
+      !formData.pickup_location.trim() ||
+      !formData.drop_location.trim() ||
+      !formData.pickup_date.trim() ||
+      !formData.pickup_time.trim() ||
+      !formData.name.trim() ||
+      !formData.mobile_number.trim()
+    ) {
+      setErrorMessage('Please fill all the required fields.');
+      return;
+    }
+
+    if (
+      formData.pickup_location.trim() &&
+      (coords.pickup_lat == null || coords.pickup_lng == null)
+    ) {
+      setErrorMessage(
+        'Please select a pick-up location from the suggestions so we can capture coordinates.',
+      );
+      return;
+    }
+
+    if (
+      formData.drop_location.trim() &&
+      (coords.drop_lat == null || coords.drop_lng == null)
+    ) {
+      setErrorMessage(
+        'Please select a drop-off location from the suggestions so we can capture coordinates.',
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let distance: number | null = null;
+      if (
+        coords.pickup_lat != null &&
+        coords.pickup_lng != null &&
+        coords.drop_lat != null &&
+        coords.drop_lng != null
+      ) {
+        distance = computeDistanceKm(
+          coords.pickup_lat,
+          coords.pickup_lng,
+          coords.drop_lat,
+          coords.drop_lng,
+        );
+      }
+
+      const result = await submitWebBookingEnquiry({
+        pickup_location: formData.pickup_location,
+        pickup_lat: coords.pickup_lat,
+        pickup_lng: coords.pickup_lng,
+        drop_location: formData.drop_location,
+        drop_lat: coords.drop_lat,
+        drop_lng: coords.drop_lng,
+        distance,
+        pickup_date: formData.pickup_date,
+        pickup_time: formData.pickup_time,
+        name: formData.name,
+        mobile_number: formData.mobile_number,
+      });
+
+      if (result.ok) {
+        setSuccessMessage('Your booking enquiry has been submitted successfully.');
+        setErrorMessage(null);
+      } else {
+        const errorMessageFromApi =
+          'error' in result && result.error
+            ? result.error
+            : 'Unable to submit your booking enquiry.';
+        setErrorMessage(errorMessageFromApi);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -100,32 +229,112 @@ const Home: React.FC = () => {
               </button>
             </div>
             
-            <div className="space-y-4">
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-accent">my_location</span>
-                <input className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium" placeholder="Pick-up location" type="text"/>
-              </div>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary">location_on</span>
-                <input className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium" placeholder="Drop-off destination" type="text"/>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <PlacesAutocomplete
+                value={formData.pickup_location}
+                onChangeText={(value) =>
+                  setFormData((prev) => ({ ...prev, pickup_location: value }))
+                }
+                onPlaceSelected={(place) =>
+                  setCoords((prev) => ({
+                    ...prev,
+                    pickup_lat: place.lat,
+                    pickup_lng: place.lng,
+                  }))
+                }
+                placeholder="Pick-up location"
+                disabled={!isMapsLoaded}
+                inputClassName="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium"
+                icon={
+                  <span className="material-symbols-outlined text-accent">
+                    my_location
+                  </span>
+                }
+              />
+              <PlacesAutocomplete
+                value={formData.drop_location}
+                onChangeText={(value) =>
+                  setFormData((prev) => ({ ...prev, drop_location: value }))
+                }
+                onPlaceSelected={(place) =>
+                  setCoords((prev) => ({
+                    ...prev,
+                    drop_lat: place.lat,
+                    drop_lng: place.lng,
+                  }))
+                }
+                placeholder="Drop-off destination"
+                disabled={!isMapsLoaded}
+                inputClassName="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium"
+                icon={
+                  <span className="material-symbols-outlined text-primary">
+                    location_on
+                  </span>
+                }
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  className="w-full rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium px-4 py-4"
+                  placeholder="Your Name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleChange('name')}
+                />
+                <input
+                  className="w-full rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium px-4 py-4"
+                  placeholder="Mobile Number"
+                  type="tel"
+                  value={formData.mobile_number}
+                  onChange={handleChange('mobile_number')}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400">calendar_month</span>
-                  <input className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 text-sm" placeholder="Today" type="text"/>
+                  <input
+                    className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 text-sm"
+                    placeholder="Pickup date"
+                    type="date"
+                    value={formData.pickup_date}
+                    onChange={handleChange('pickup_date')}
+                  />
                 </div>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400">schedule</span>
-                  <input className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 text-sm" placeholder="Now" type="text"/>
+                  <input
+                    className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 text-sm"
+                    placeholder="Pickup time"
+                    type="time"
+                    value={formData.pickup_time}
+                    onChange={handleChange('pickup_time')}
+                  />
                 </div>
               </div>
-              <a
-                href="https://admin.saathidrive.com/login/user-login/"
-                className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+              {mapsError && (
+                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  Location suggestions are currently unavailable. You can still type
+                  addresses manually.
+                </p>
+              )}
+              {errorMessage && (
+                <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                  {errorMessage}
+                </p>
+              )}
+              {successMessage && (
+                <p className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                  {successMessage}
+                </p>
+              )}
+              <button
+                type="submit"
+                className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:bg-primary/90 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
+                disabled={isSubmitting}
               >
-                BOOK YOUR RIDE <span className="material-symbols-outlined">arrow_forward</span>
-              </a>
-            </div>
+                {isSubmitting ? 'BOOKING...' : 'BOOK YOUR RIDE'}
+                <span className="material-symbols-outlined">arrow_forward</span>
+              </button>
+            </form>
           </div>
         </div>
       </section>
@@ -211,12 +420,17 @@ const Home: React.FC = () => {
             <p className="text-white/70 font-medium">Get the Saathi Drive app for exclusive rewards and faster bookings.</p>
           </div>
           <div className="flex flex-wrap justify-center gap-4">
-            <button className="bg-black text-white px-6 py-3 rounded-xl flex items-center gap-3 border border-white/10 hover:border-accent transition-all">
+            <a
+              href="https://apps.apple.com/in/app/saathi-drive/id6756699698"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-black text-white px-6 py-3 rounded-xl flex items-center gap-3 border border-white/10 hover:border-accent transition-all"
+            >
               <div className="flex flex-col items-start">
                 <span className="text-[10px] leading-none uppercase opacity-60">Download on the</span>
                 <span className="text-lg leading-none font-bold">App Store</span>
               </div>
-            </button>
+            </a>
             <a 
               href="https://play.google.com/store/apps/details?id=com.saathidrive.user" 
               target="_blank" 
