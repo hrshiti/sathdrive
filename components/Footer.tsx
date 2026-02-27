@@ -91,7 +91,7 @@ const Footer: React.FC = () => {
               </p>
               <p className="flex gap-2">
                 <span className="material-symbols-outlined text-accent text-sm">call</span>
-                +91 7760904040
+                +91 9900007816
               </p>
               <p className="flex gap-2">
                 <span className="material-symbols-outlined text-accent text-sm">mail</span>

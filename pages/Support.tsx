@@ -31,7 +31,7 @@ const Support: React.FC = () => {
           <div className="bg-white p-8 rounded-xl shadow-xl border-b-4 border-accent">
             <span className="material-symbols-outlined !text-4xl text-accent mb-6 block">call</span>
             <h3 className="text-xl font-bold mb-2">Call Our Hotline</h3>
-            <a className="text-2xl font-bold text-primary hover:text-accent transition-colors block" href="tel:+917760904040">+91 7760904040</a>
+            <a className="text-2xl font-bold text-primary hover:text-accent transition-colors block" href="tel:+919900007816">+91 9900007816</a>
             <span className="text-[10px] font-bold text-accent uppercase tracking-widest mt-2 block">Available 24/7</span>
           </div>
           <div className="bg-white p-8 rounded-xl shadow-xl border-b-4 border-accent">
