@@ -39,14 +39,6 @@ const Navbar: React.FC = () => {
         ))}
       </div>
 
-      <div>
-        <a
-          href="https://admin.saathidrive.com/login/user-login/"
-          className="px-6 py-2 rounded-lg border-2 border-primary text-primary font-bold text-sm hover:bg-primary hover:text-white transition-all inline-block"
-        >
-          BOOK NOW
-        </a>
-      </div>
     </nav>
   );
 };

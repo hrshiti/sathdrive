@@ -12,6 +12,7 @@ type PlacesAutocompleteProps = {
   inputClassName?: string;
   icon?: React.ReactNode;
   disabled?: boolean;
+  isReady?: boolean;
 };
 
 const PlacesAutocomplete: React.FC<PlacesAutocompleteProps> = ({
@@ -22,12 +23,13 @@ const PlacesAutocomplete: React.FC<PlacesAutocompleteProps> = ({
   inputClassName,
   icon,
   disabled,
+  isReady,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const google = (window as any).google;
-    if (!google?.maps?.places || !inputRef.current) {
+    if (!isReady || !google?.maps?.places || !inputRef.current) {
       return;
     }
 
@@ -65,7 +67,7 @@ const PlacesAutocomplete: React.FC<PlacesAutocompleteProps> = ({
         google.maps.event.removeListener(listener);
       }
     };
-  }, [onChangeText, onPlaceSelected]);
+  }, [isReady, onChangeText, onPlaceSelected]);
 
   return (
     <div className="relative">

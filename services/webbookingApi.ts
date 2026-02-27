@@ -10,6 +10,7 @@ export type WebBookingEnquiryPayload = {
   pickup_time: string;
   name: string;
   mobile_number: string;
+  ride_for: 'city' | 'rental' | 'outstation' | 'airport';
 };
 
 type WebBookingSuccess = {

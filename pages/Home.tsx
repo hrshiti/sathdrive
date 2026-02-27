@@ -69,6 +69,8 @@ const Home: React.FC = () => {
     mobile_number: '',
   });
 
+  const [rideFor, setRideFor] = useState<'city' | 'rental' | 'outstation' | 'airport'>('city');
+
   const [coords, setCoords] = useState<{
     pickup_lat: number | null;
     pickup_lng: number | null;
@@ -160,11 +162,27 @@ const Home: React.FC = () => {
         pickup_time: formData.pickup_time,
         name: formData.name,
         mobile_number: formData.mobile_number,
+        ride_for: rideFor,
       });
 
       if (result.ok) {
         setSuccessMessage('Your booking enquiry has been submitted successfully.');
         setErrorMessage(null);
+        // Reset form and coordinates after successful submit
+        setFormData({
+          pickup_location: '',
+          drop_location: '',
+          pickup_date: getDefaultDate(),
+          pickup_time: getDefaultTime(),
+          name: '',
+          mobile_number: '',
+        });
+        setCoords({
+          pickup_lat: null,
+          pickup_lng: null,
+          drop_lat: null,
+          drop_lng: null,
+        });
       } else {
         const errorMessageFromApi =
           'error' in result && result.error
@@ -215,16 +233,48 @@ const Home: React.FC = () => {
           {/* Booking Widget */}
           <div className="glass-effect rounded-xl shadow-2xl p-6 border border-white/20">
             <div className="flex flex-wrap border-b border-gray-200 mb-6 overflow-x-auto whitespace-nowrap">
-              <button className="flex-1 pb-4 text-xs font-bold border-b-2 border-accent text-primary flex items-center justify-center gap-2 min-w-[80px]">
+              <button
+                type="button"
+                onClick={() => setRideFor('city')}
+                className={`flex-1 pb-4 text-xs font-bold flex items-center justify-center gap-2 min-w-[80px] border-b-2 transition-all ${
+                  rideFor === 'city'
+                    ? 'border-accent text-primary'
+                    : 'border-transparent text-gray-400 hover:text-primary'
+                }`}
+              >
                 <span className="material-symbols-outlined text-sm">location_city</span> CITY
               </button>
-              <button className="flex-1 pb-4 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-primary transition-all flex items-center justify-center gap-2 min-w-[80px]">
+              <button
+                type="button"
+                onClick={() => setRideFor('rental')}
+                className={`flex-1 pb-4 text-xs font-bold flex items-center justify-center gap-2 min-w-[80px] border-b-2 transition-all ${
+                  rideFor === 'rental'
+                    ? 'border-accent text-primary'
+                    : 'border-transparent text-gray-400 hover:text-primary'
+                }`}
+              >
                 <span className="material-symbols-outlined text-sm">history</span> RENTALS
               </button>
-              <button className="flex-1 pb-4 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-primary transition-all flex items-center justify-center gap-2 min-w-[80px]">
+              <button
+                type="button"
+                onClick={() => setRideFor('outstation')}
+                className={`flex-1 pb-4 text-xs font-bold flex items-center justify-center gap-2 min-w-[80px] border-b-2 transition-all ${
+                  rideFor === 'outstation'
+                    ? 'border-accent text-primary'
+                    : 'border-transparent text-gray-400 hover:text-primary'
+                }`}
+              >
                 <span className="material-symbols-outlined text-sm">distance</span> OUTSTATION
               </button>
-              <button className="flex-1 pb-4 text-xs font-bold border-b-2 border-transparent text-gray-400 hover:text-primary transition-all flex items-center justify-center gap-2 min-w-[80px]">
+              <button
+                type="button"
+                onClick={() => setRideFor('airport')}
+                className={`flex-1 pb-4 text-xs font-bold flex items-center justify-center gap-2 min-w-[80px] border-b-2 transition-all ${
+                  rideFor === 'airport'
+                    ? 'border-accent text-primary'
+                    : 'border-transparent text-gray-400 hover:text-primary'
+                }`}
+              >
                 <span className="material-symbols-outlined text-sm">flight</span> AIRPORT
               </button>
             </div>
@@ -244,6 +294,7 @@ const Home: React.FC = () => {
                 }
                 placeholder="Pick-up location"
                 disabled={!isMapsLoaded}
+                isReady={isMapsLoaded}
                 inputClassName="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium"
                 icon={
                   <span className="material-symbols-outlined text-accent">
@@ -265,6 +316,7 @@ const Home: React.FC = () => {
                 }
                 placeholder="Drop-off destination"
                 disabled={!isMapsLoaded}
+                isReady={isMapsLoaded}
                 inputClassName="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium"
                 icon={
                   <span className="material-symbols-outlined text-primary">
