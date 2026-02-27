@@ -30,10 +30,10 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="text-white font-bold mb-6 text-sm uppercase tracking-widest">Company</h4>
             <ul className="space-y-4 text-white/60 text-sm">
-              <li><a href="#" className="hover:text-accent transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Contact</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Safety</a></li>
+              <li><a href="#/about" className="hover:text-accent transition-colors">About Us</a></li>
+              <li><a href="#/support" className="hover:text-accent transition-colors">Contact</a></li>
+              <li><a href="#/support" className="hover:text-accent transition-colors">Careers</a></li>
+              <li><a href="#/compliance" className="hover:text-accent transition-colors">Safety</a></li>
             </ul>
           </div>
           
@@ -69,9 +69,9 @@ const Footer: React.FC = () => {
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">
           <p>© 2024 Saathi Drive Technologies Pvt Ltd. All Rights Reserved.</p>
           <div className="flex gap-8">
-            <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-white transition-colors">Compliance</a>
+            <a href="#/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
+            <a href="#/terms" className="hover:text-white transition-colors">Terms &amp; Conditions</a>
+            <a href="#/compliance" className="hover:text-white transition-colors">Compliance</a>
           </div>
         </div>
       </div>
