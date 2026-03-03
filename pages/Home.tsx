@@ -102,6 +102,7 @@ const Home: React.FC = () => {
   const [outstationTripType, setOutstationTripType] = useState<'one_way' | 'round_trip'>('one_way');
   const [returnDate, setReturnDate] = useState<string>('');
   const [returnTime, setReturnTime] = useState<string>('');
+  const [airportDirection, setAirportDirection] = useState<'pickup_from_airport' | 'drop_at_airport'>('pickup_from_airport');
 
   const { isLoaded: isMapsLoaded, error: mapsError } = useGoogleMapsScript();
 
@@ -350,6 +351,7 @@ const Home: React.FC = () => {
           rideFor === 'outstation' && outstationTripType === 'round_trip'
             ? returnTime
             : null,
+        airport_direction: rideFor === 'airport' ? airportDirection : null,
       });
 
       if (result.ok) {
@@ -594,6 +596,34 @@ const Home: React.FC = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+              {rideFor === 'airport' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAirportDirection('pickup_from_airport')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold border ${
+                        airportDirection === 'pickup_from_airport'
+                          ? 'border-accent bg-accent/10 text-primary'
+                          : 'border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      PICKUP FROM AIRPORT
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAirportDirection('drop_at_airport')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold border ${
+                        airportDirection === 'drop_at_airport'
+                          ? 'border-accent bg-accent/10 text-primary'
+                          : 'border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      DROP AT AIRPORT
+                    </button>
+                  </div>
                 </div>
               )}
               {rideFor !== 'rental' && etaVehiclesArray.length > 0 && (

@@ -18,6 +18,8 @@ export type WebBookingEnquiryPayload = {
   trip_type?: 'one_way' | 'round_trip' | null;
   return_date?: string | null;
   return_time?: string | null;
+  // For airport
+  airport_direction?: 'pickup_from_airport' | 'drop_at_airport' | null;
 };
 
 type WebBookingSuccess = {
