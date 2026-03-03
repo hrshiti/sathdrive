@@ -11,6 +11,13 @@ export type WebBookingEnquiryPayload = {
   name: string;
   mobile_number: string;
   ride_for: 'city' | 'rental' | 'outstation' | 'airport';
+  // For rentals
+  package_id?: string | number | null;
+  vehicle_type_id?: string | number | null;
+  // For outstation
+  trip_type?: 'one_way' | 'round_trip' | null;
+  return_date?: string | null;
+  return_time?: string | null;
 };
 
 type WebBookingSuccess = {

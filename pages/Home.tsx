@@ -1,10 +1,14 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import PlacesAutocomplete from '../components/PlacesAutocomplete';
 import { useGoogleMapsScript } from '../hooks/useGoogleMapsScript';
 import { computeDistanceKm } from '../utils/geo';
 import { submitWebBookingEnquiry } from '../services/webbookingApi';
+import { listPackages, getEtaVehicles } from '../services/dispatcherApi';
 import type { ServiceCard } from '../types.ts';
+
+const DEFAULT_PICK_LAT = 11.05894918;
+const DEFAULT_PICK_LNG = 76.99666478;
 
 const SERVICES: ServiceCard[] = [
   {
@@ -87,7 +91,119 @@ const Home: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const [rentalPackages, setRentalPackages] = useState<any[] | null>(null);
+  const [rentalPackagesLoading, setRentalPackagesLoading] = useState(false);
+  const [rentalPackagesError, setRentalPackagesError] = useState<string | null>(null);
+  const [selectedPackageId, setSelectedPackageId] = useState<string>('');
+  const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string>('');
+  const [etaVehicles, setEtaVehicles] = useState<any[] | null>(null);
+  const [etaLoading, setEtaLoading] = useState(false);
+  const [etaError, setEtaError] = useState<string | null>(null);
+  const [outstationTripType, setOutstationTripType] = useState<'one_way' | 'round_trip'>('one_way');
+  const [returnDate, setReturnDate] = useState<string>('');
+  const [returnTime, setReturnTime] = useState<string>('');
+
   const { isLoaded: isMapsLoaded, error: mapsError } = useGoogleMapsScript();
+
+  useEffect(() => {
+    if (rideFor !== 'rental') {
+      setRentalPackages(null);
+      setRentalPackagesError(null);
+      return;
+    }
+    const pickLat = coords.pickup_lat ?? DEFAULT_PICK_LAT;
+    const pickLng = coords.pickup_lng ?? DEFAULT_PICK_LNG;
+
+    let cancelled = false;
+    setRentalPackagesLoading(true);
+    setRentalPackagesError(null);
+    listPackages({
+      pick_lat: pickLat,
+      pick_lng: pickLng,
+      transport_type: 'rental',
+    })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.ok) {
+          const apiData = result.data as import('../services/dispatcherApi').ListPackagesApiResponse;
+          const packages = Array.isArray(apiData?.data) ? apiData.data : [];
+          setRentalPackages(packages);
+          setRentalPackagesError(null);
+        } else {
+          setRentalPackagesError((result as { ok: false; error: string }).error);
+          setRentalPackages(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRentalPackagesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rideFor, coords.pickup_lat, coords.pickup_lng]);
+
+  useEffect(() => {
+    if (rideFor === 'rental') {
+      setEtaVehicles(null);
+      setEtaError(null);
+      return;
+    }
+
+    if (
+      coords.pickup_lat == null ||
+      coords.pickup_lng == null ||
+      coords.drop_lat == null ||
+      coords.drop_lng == null
+    ) {
+      setEtaVehicles(null);
+      return;
+    }
+
+    let cancelled = false;
+    setEtaLoading(true);
+    setEtaError(null);
+    getEtaVehicles({
+      pick_lat: coords.pickup_lat,
+      pick_lng: coords.pickup_lng,
+      drop_lat: coords.drop_lat,
+      drop_lng: coords.drop_lng,
+      transport_type: 'taxi',
+    })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.ok) {
+          const apiData = result.data as import('../services/dispatcherApi').EtaApiResponse;
+          const vehicles = Array.isArray(apiData?.data) ? apiData.data : [];
+          setEtaVehicles(vehicles);
+          setEtaError(null);
+        } else {
+          setEtaError((result as { ok: false; error: string }).error);
+          setEtaVehicles(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setEtaLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rideFor, coords.pickup_lat, coords.pickup_lng, coords.drop_lat, coords.drop_lng]);
+
+  const rentalPackagesArray = Array.isArray(rentalPackages) ? rentalPackages : [];
+  const selectedPackage =
+    rentalPackagesArray.find((pkg: any) => {
+      const id = (pkg && pkg.id) as string | number | undefined;
+      return id != null && String(id) === selectedPackageId;
+    }) || null;
+  const selectedPackageVehicles: any[] =
+    (selectedPackage &&
+      (selectedPackage as import('../services/dispatcherApi').RentalPackage)
+        .typesWithPrice?.data) ||
+    [];
+
+  const etaVehiclesArray = Array.isArray(etaVehicles) ? etaVehicles : [];
 
   const handleChange = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -124,12 +240,16 @@ const Home: React.FC = () => {
 
     if (
       !formData.pickup_location.trim() ||
-      !formData.drop_location.trim() ||
       !formData.pickup_date.trim() ||
       !formData.pickup_time.trim() ||
       !formData.name.trim() ||
       !formData.mobile_number.trim()
     ) {
+      setErrorMessage('Please fill all the required fields.');
+      return;
+    }
+
+    if (rideFor !== 'rental' && !formData.drop_location.trim()) {
       setErrorMessage('Please fill all the required fields.');
       return;
     }
@@ -142,6 +262,41 @@ const Home: React.FC = () => {
         'Please select a pick-up location from the suggestions so we can capture coordinates.',
       );
       return;
+    }
+
+    if (rideFor === 'rental') {
+      if (!selectedPackageId) {
+        setErrorMessage('Please select a rental package.');
+        return;
+      }
+      if (!selectedVehicleTypeId) {
+        setErrorMessage('Please select a vehicle type.');
+        return;
+      }
+    } else if (rideFor === 'city' || rideFor === 'outstation') {
+      if (!selectedVehicleTypeId) {
+        setErrorMessage('Please select a vehicle type.');
+        return;
+      }
+    }
+
+    if (rideFor === 'outstation' && outstationTripType === 'round_trip') {
+      if (!returnDate.trim() || !returnTime.trim()) {
+        setErrorMessage('Please select return date and time for round trip.');
+        return;
+      }
+      const pickupDateTime = new Date(`${formData.pickup_date}T${formData.pickup_time}:00`);
+      const returnDateTime = new Date(`${returnDate}T${returnTime}:00`);
+      if (isNaN(pickupDateTime.getTime()) || isNaN(returnDateTime.getTime())) {
+        setErrorMessage('Invalid return date or time.');
+        return;
+      }
+      const diffMs = returnDateTime.getTime() - pickupDateTime.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      if (diffHours < 1) {
+        setErrorMessage('Return time must be at least 1 hour after pickup time.');
+        return;
+      }
     }
 
     if (
@@ -184,6 +339,17 @@ const Home: React.FC = () => {
         name: formData.name,
         mobile_number: formData.mobile_number,
         ride_for: rideFor,
+        package_id: rideFor === 'rental' ? selectedPackageId : null,
+        vehicle_type_id: selectedVehicleTypeId || null,
+        trip_type: rideFor === 'outstation' ? outstationTripType : null,
+        return_date:
+          rideFor === 'outstation' && outstationTripType === 'round_trip'
+            ? returnDate
+            : null,
+        return_time:
+          rideFor === 'outstation' && outstationTripType === 'round_trip'
+            ? returnTime
+            : null,
       });
 
       if (result.ok) {
@@ -204,6 +370,11 @@ const Home: React.FC = () => {
           drop_lat: null,
           drop_lng: null,
         });
+        setSelectedPackageId('');
+        setSelectedVehicleTypeId('');
+        setOutstationTripType('one_way');
+        setReturnDate('');
+        setReturnTime('');
       } else {
         const errorMessageFromApi =
           'error' in result && result.error
@@ -315,20 +486,22 @@ const Home: React.FC = () => {
                   </span>
                 }
               />
-              <PlacesAutocomplete
-                value={formData.drop_location}
-                onChangeText={onDropChangeText}
-                onPlaceSelected={onDropPlaceSelected}
-                placeholder="Drop-off destination"
-                disabled={!isMapsLoaded}
-                isReady={isMapsLoaded}
-                inputClassName="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium"
-                icon={
-                  <span className="material-symbols-outlined text-primary">
-                    location_on
-                  </span>
-                }
-              />
+              {rideFor !== 'rental' && (
+                <PlacesAutocomplete
+                  value={formData.drop_location}
+                  onChangeText={onDropChangeText}
+                  onPlaceSelected={onDropPlaceSelected}
+                  placeholder="Drop-off destination"
+                  disabled={!isMapsLoaded}
+                  isReady={isMapsLoaded}
+                  inputClassName="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium"
+                  icon={
+                    <span className="material-symbols-outlined text-primary">
+                      location_on
+                    </span>
+                  }
+                />
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   className="w-full rounded-lg bg-gray-50 border border-gray-200 focus:ring-accent focus:border-accent text-primary font-medium px-4 py-4"
@@ -367,6 +540,178 @@ const Home: React.FC = () => {
                   />
                 </div>
               </div>
+              {rideFor === 'outstation' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setOutstationTripType('one_way')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold border ${
+                        outstationTripType === 'one_way'
+                          ? 'border-accent bg-accent/10 text-primary'
+                          : 'border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      ONE WAY
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOutstationTripType('round_trip')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold border ${
+                        outstationTripType === 'round_trip'
+                          ? 'border-accent bg-accent/10 text-primary'
+                          : 'border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      ROUND TRIP
+                    </button>
+                  </div>
+                  {outstationTripType === 'round_trip' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400">
+                          calendar_month
+                        </span>
+                        <input
+                          className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 text-sm"
+                          placeholder="Return date"
+                          type="date"
+                          value={returnDate}
+                          onChange={(e) => setReturnDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-400">
+                          schedule
+                        </span>
+                        <input
+                          className="w-full pl-12 pr-4 py-4 rounded-lg bg-gray-50 border border-gray-200 text-sm"
+                          placeholder="Return time"
+                          type="time"
+                          value={returnTime}
+                          onChange={(e) => setReturnTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {rideFor !== 'rental' && etaVehiclesArray.length > 0 && (
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 space-y-2">
+                  {etaLoading && (
+                    <p className="text-sm text-gray-500 flex items-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-accent">
+                        progress_activity
+                      </span>
+                      Loading vehicles…
+                    </p>
+                  )}
+                  {!etaLoading && etaError && (
+                    <p className="text-sm text-red-500">{etaError}</p>
+                  )}
+                  {!etaLoading && !etaError && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">
+                        Vehicle Type
+                      </label>
+                      <select
+                        className="w-full rounded-lg bg-white border border-gray-200 text-sm px-3 py-2"
+                        value={selectedVehicleTypeId}
+                        onChange={(e) => setSelectedVehicleTypeId(e.target.value)}
+                      >
+                        <option value="">Select vehicle</option>
+                        {etaVehiclesArray.map((veh: any) => {
+                          const typedVeh =
+                            veh as import('../services/dispatcherApi').EtaVehicle;
+                          const id = typedVeh.type_id ?? typedVeh.id;
+                          const name = typedVeh.name ?? 'Vehicle';
+                          const total = (typedVeh as any).total;
+                          const currency = typedVeh.currency ?? '';
+                          return (
+                            <option
+                              key={String(id)}
+                              value={id != null ? String(id) : ''}
+                            >
+                              {name}
+                              {total != null ? ` (${total} ${currency})` : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+              {rideFor === 'rental' && (
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 space-y-2">
+                  {rentalPackagesLoading && (
+                    <p className="text-sm text-gray-500 flex items-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-accent">progress_activity</span>
+                      Loading rental packages…
+                    </p>
+                  )}
+                  {!rentalPackagesLoading && rentalPackagesError && (
+                    <p className="text-sm text-red-500">{rentalPackagesError}</p>
+                  )}
+                  {!rentalPackagesLoading && !rentalPackagesError && rentalPackagesArray.length > 0 && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">
+                          Rental Package
+                        </label>
+                        <select
+                          className="w-full rounded-lg bg-white border border-gray-200 text-sm px-3 py-2"
+                          value={selectedPackageId}
+                          onChange={(e) => {
+                            setSelectedPackageId(e.target.value);
+                            setSelectedVehicleTypeId('');
+                          }}
+                        >
+                          <option value="">Select package</option>
+                          {rentalPackagesArray.map((pkg: any) => {
+                            const typed = pkg as import('../services/dispatcherApi').RentalPackage;
+                            const id = typed.id;
+                            const name = typed.package_name;
+                            const min = typed.min_price;
+                            const max = typed.max_price;
+                            return (
+                              <option key={String(id)} value={id != null ? String(id) : ''}>
+                                {name} ({min}-{max} {typed.currency})
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                      {selectedPackage && selectedPackageVehicles.length > 0 && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">
+                            Vehicle Type
+                          </label>
+                          <select
+                            className="w-full rounded-lg bg-white border border-gray-200 text-sm px-3 py-2"
+                            value={selectedVehicleTypeId}
+                            onChange={(e) => setSelectedVehicleTypeId(e.target.value)}
+                          >
+                            <option value="">Select vehicle</option>
+                            {selectedPackageVehicles.map((veh: any) => {
+                              const typedVeh =
+                                veh as import('../services/dispatcherApi').RentalTypeWithPrice;
+                              const id = typedVeh.type_id;
+                              const name = typedVeh.name;
+                              const total = typedVeh.total;
+                              return (
+                                <option key={String(id)} value={id != null ? String(id) : ''}>
+                                  {name} ({total} {typedVeh.currency})
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               {mapsError && (
                 <p className="text-sm text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                   Location suggestions are currently unavailable. You can still type
